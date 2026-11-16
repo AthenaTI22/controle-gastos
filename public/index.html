@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controle de gastos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --fundo: #eef1ee; --papel: #ffffff; --tinta: #17262b; --suave: #5d6e72;
+      --linha: #d3dbd8; --destaque: #0f766e; --destaque-escuro: #0b5a54; --perigo: #b42318;
+      font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fundo: #101a1c; --papel: #182427; --tinta: #e6efec; --suave: #93a7aa;
+        --linha: #2b3d41; --destaque: #3fc2b4; --destaque-escuro: #6fd8cc; --perigo: #ff8a7a;
+        color-scheme: dark;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--fundo); color: var(--tinta); line-height: 1.5; }
+    main { max-width: 40rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+    h1 { font-size: 1rem; font-weight: 600; margin: 0; color: var(--suave); }
+    .total { font-size: clamp(3rem, 14vw, 5.5rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.04em; margin: .1em 0 1.5rem; font-variant-numeric: tabular-nums; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2.5rem 0 .75rem; }
+
+    .barras { display: grid; gap: .75rem; }
+    .linha-barra { display: grid; grid-template-columns: 7.5rem 1fr auto; gap: .75rem; align-items: center; }
+    .barra { height: .7rem; background: var(--linha); border-radius: 99px; overflow: hidden; }
+    .barra span { display: block; height: 100%; background: var(--destaque); border-radius: 99px; }
+    .valor { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+    .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    form.gasto { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; background: var(--papel); border: 1.5px solid var(--linha); border-radius: .75rem; padding: 1rem; }
+    form.gasto .cheio { grid-column: 1 / -1; }
+    label.campo { display: grid; gap: .25rem; font-size: .875rem; color: var(--suave); }
+    input, select { font: inherit; padding: .65rem .8rem; color: var(--tinta); background: var(--fundo); border: 1.5px solid var(--linha); border-radius: .5rem; min-width: 0; width: 100%; }
+    button { font: inherit; cursor: pointer; border-radius: .5rem; }
+    .primario { padding: .7rem 1.2rem; font-weight: 600; border: 0; background: var(--destaque); color: #fff; }
+    .primario:hover { background: var(--destaque-escuro); }
+    .primario:disabled { opacity: .6; cursor: wait; }
+    .secundario { padding: .7rem 1rem; border: 1.5px solid var(--linha); background: none; color: var(--tinta); }
+    .acoes { display: flex; gap: .5rem; }
+    :focus-visible { outline: 3px solid var(--destaque); outline-offset: 2px; }
+
+    ul { list-style: none; margin: 0; padding: 0; background: var(--papel); border: 1.5px solid var(--linha); border-radius: .75rem; }
+    li { display: flex; align-items: center; gap: .75rem; padding: .8rem 1rem; }
+    li + li { border-top: 1px solid var(--linha); }
+    .info { flex: 1; min-width: 0; }
+    .info strong { display: block; overflow-wrap: anywhere; font-weight: 600; }
+    .info small { color: var(--suave); }
+    .link { border: 0; background: none; color: var(--suave); padding: .3rem .5rem; }
+    .link:hover { color: var(--destaque); }
+    .link.perigo:hover { color: var(--perigo); }
+    .vazio { padding: 1.25rem 1rem; color: var(--suave); }
+    .erro { color: var(--perigo); font-weight: 600; }
+    #aviso { min-height: 1.5em; margin-top: 1rem; }
+
+    details { margin-top: 2.5rem; }
+    summary { cursor: pointer; font-weight: 600; }
+    form.categoria { display: flex; gap: .5rem; margin: .75rem 0; }
+    @media (max-width: 30rem) {
+      .linha-barra { grid-template-columns: 5.5rem 1fr auto; }
+      form.gasto { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Total gasto</h1>
+    <p class="total" id="total">R$ 0,00</p>
+
+    <div class="barras" id="barras" aria-label="Total por categoria"></div>
+
+    <h2 id="titulo-form">Novo gasto</h2>
+    <form class="gasto" id="form">
+      <label class="campo cheio">Descrição
+        <input type="text" id="descricao" maxlength="100" required placeholder="Ex.: almoço no restaurante">
+      </label>
+      <label class="campo">Valor (R$)
+        <input type="number" id="valor" min="0.01" step="0.01" required placeholder="0,00" inputmode="decimal">
+      </label>
+      <label class="campo">Data
+        <input type="date" id="data" required>
+      </label>
+      <label class="campo cheio">Categoria
+        <select id="categoria" required></select>
+      </label>
+      <div class="acoes cheio">
+        <button class="primario" id="botao" type="submit">Adicionar gasto</button>
+        <button class="secundario" id="cancelar" type="button" hidden>Cancelar edição</button>
+      </div>
+    </form>
+
+    <h2>Gastos</h2>
+    <ul id="lista"></ul>
+    <div id="aviso" class="erro" role="alert"></div>
+
+    <details>
+      <summary>Gerenciar categorias</summary>
+      <form class="categoria" id="form-categoria">
+        <input type="text" id="nova-categoria" maxlength="40" required aria-label="Nome da nova categoria" placeholder="Nome da categoria">
+        <button class="primario" type="submit">Adicionar</button>
+      </form>
+      <ul id="lista-categorias"></ul>
+    </details>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const brl = (n) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+    const dataBR = (iso) => iso.split('-').reverse().join('/');
+    const hoje = () => new Date().toLocaleDateString('en-CA'); // AAAA-MM-DD no fuso local
+
+    let categorias = [], gastos = [], resumo = { total: 0, categorias: [] };
+    let editandoId = null;
+
+    async function api(url, opcoes = {}) {
+      const resp = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opcoes });
+      if (resp.status === 204) return null;
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Algo deu errado. Tente de novo.');
+      return dados;
+    }
+
+    const avisar = (msg = '') => { $('aviso').textContent = msg; };
+
+    async function carregar() {
+      try {
+        [categorias, gastos, resumo] = await Promise.all([
+          api('/api/categorias'), api('/api/gastos'), api('/api/resumo')
+        ]);
+        avisar();
+      } catch (e) {
+        avisar(`${e.message} Confira as variáveis de ambiente e se o schema.sql foi executado.`);
+        return;
+      }
+      desenhar();
+    }
+
+    function el(tag, texto, classe) {
+      const e = document.createElement(tag);
+      if (texto !== undefined) e.textContent = texto;
+      if (classe) e.className = classe;
+      return e;
+    }
+
+    function desenhar() {
+      $('total').textContent = brl(resumo.total);
+
+      // Barras por categoria
+      const barras = $('barras');
+      barras.replaceChildren();
+      const maximo = Math.max(...resumo.categorias.map(c => c.total), 0);
+      for (const c of resumo.categorias.filter(c => c.total > 0)) {
+        const linha = el('div', undefined, 'linha-barra');
+        const barra = el('div', undefined, 'barra');
+        const preenchida = document.createElement('span');
+        preenchida.style.width = `${(c.total / maximo) * 100}%`;
+        barra.append(preenchida);
+        linha.append(el('span', c.nome, 'nome'), barra, el('span', brl(c.total), 'valor'));
+        barras.append(linha);
+      }
+
+      // Select de categorias (mantém a escolha atual)
+      const sel = $('categoria');
+      const atual = sel.value;
+      sel.replaceChildren();
+      for (const c of categorias) {
+        const o = el('option', c.nome);
+        o.value = c.id;
+        sel.append(o);
+      }
+      if (atual && categorias.some(c => String(c.id) === atual)) sel.value = atual;
+      $('botao').disabled = categorias.length === 0;
+
+      // Lista de gastos
+      const lista = $('lista');
+      lista.replaceChildren();
+      if (!gastos.length) {
+        lista.append(el('li', categorias.length
+          ? 'Nenhum gasto ainda. Preencha o formulário acima para registrar o primeiro.'
+          : 'Crie uma categoria em "Gerenciar categorias" para começar.', 'vazio'));
+      }
+      for (const g of gastos) {
+        const li = el('li');
+        const info = el('div', undefined, 'info');
+        info.append(el('strong', g.descricao), el('small', `${g.categoria} • ${dataBR(g.data)}`));
+        const editar = el('button', 'Editar', 'link');
+        editar.type = 'button';
+        editar.setAttribute('aria-label', `Editar ${g.descricao}`);
+        editar.addEventListener('click', () => iniciarEdicao(g));
+        const excluir = el('button', 'Excluir', 'link perigo');
+        excluir.type = 'button';
+        excluir.setAttribute('aria-label', `Excluir ${g.descricao}`);
+        excluir.addEventListener('click', () => excluirGasto(g.id));
+        li.append(info, el('span', brl(g.valor), 'valor'), editar, excluir);
+        lista.append(li);
+      }
+
+      // Lista de categorias
+      const listaCat = $('lista-categorias');
+      listaCat.replaceChildren();
+      for (const c of categorias) {
+        const li = el('li');
+        const nome = el('span', c.nome, 'info');
+        const excluir = el('button', 'Excluir', 'link perigo');
+        excluir.type = 'button';
+        excluir.setAttribute('aria-label', `Excluir categoria ${c.nome}`);
+        excluir.addEventListener('click', () => excluirCategoria(c.id));
+        li.append(nome, excluir);
+        listaCat.append(li);
+      }
+    }
+
+    function limparForm() {
+      editandoId = null;
+      $('form').reset();
+      $('data').value = hoje();
+      $('titulo-form').textContent = 'Novo gasto';
+      $('botao').textContent = 'Adicionar gasto';
+      $('cancelar').hidden = true;
+    }
+
+    function iniciarEdicao(g) {
+      editandoId = g.id;
+      $('descricao').value = g.descricao;
+      $('valor').value = g.valor;
+      $('data').value = g.data;
+      $('categoria').value = g.categoria_id;
+      $('titulo-form').textContent = 'Editar gasto';
+      $('botao').textContent = 'Salvar alterações';
+      $('cancelar').hidden = false;
+      $('descricao').focus();
+      $('form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    $('cancelar').addEventListener('click', limparForm);
+
+    $('form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const corpo = JSON.stringify({
+        descricao: $('descricao').value,
+        valor: Number($('valor').value),
+        data: $('data').value,
+        categoria_id: Number($('categoria').value)
+      });
+      $('botao').disabled = true;
+      try {
+        if (editandoId) await api(`/api/gastos?id=${editandoId}`, { method: 'PATCH', body: corpo });
+        else await api('/api/gastos', { method: 'POST', body: corpo });
+        limparForm();
+        await carregar();
+      } catch (e) { avisar(e.message); }
+      $('botao').disabled = categorias.length === 0;
+    });
+
+    async function excluirGasto(id) {
+      if (!confirm('Excluir este gasto?')) return;
+      try { await api(`/api/gastos?id=${id}`, { method: 'DELETE' }); if (editandoId === id) limparForm(); await carregar(); }
+      catch (e) { avisar(e.message); }
+    }
+
+    $('form-categoria').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      try {
+        await api('/api/categorias', { method: 'POST', body: JSON.stringify({ nome: $('nova-categoria').value }) });
+        $('nova-categoria').value = '';
+        await carregar();
+      } catch (e) { avisar(e.message); }
+    });
+
+    async function excluirCategoria(id) {
+      if (!confirm('Excluir esta categoria?')) return;
+      try { await api(`/api/categorias?id=${id}`, { method: 'DELETE' }); await carregar(); }
+      catch (e) { avisar(e.message); }
+    }
+
+    limparForm();
+    carregar();
+  </script>
+</body>
+</html>
