@@ -38,13 +38,16 @@ O total por categoria (`api/resumo.js`) usa `LEFT JOIN` + `GROUP BY` + `SUM`.
 
 ## 2. Rodar na sua máquina
 
+Crie o arquivo `.env` a partir do exemplo e preencha com os dados do passo 1.4
+(no Windows: `copy .env.example .env`; no Mac/Linux: `cp .env.example .env`).
+
 ```bash
 npm install
-cp .env.example .env        # PowerShell: Copy-Item .env.example .env
-# preencha o .env com os dados do passo 1.4
-npm run test:db             # deve mostrar "Conexao OK"
-npx vercel dev              # http://localhost:3000
+npm run test:db
+npx vercel dev
 ```
+
+O `npm run test:db` deve mostrar "Conexao OK", e o `npx vercel dev` abre o site em http://localhost:3000.
 
 ## 3. Git e GitHub
 
@@ -56,7 +59,7 @@ git add .
 git status                  # confirme que o .env NAO aparece
 git commit -m "Primeira versao: frontend, API e banco"
 git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/controle-gastos.git
+git remote add origin https://github.com/AthenaTI22/controle-gastos.git
 git push -u origin main
 ```
 
